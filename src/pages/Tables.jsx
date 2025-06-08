@@ -20,12 +20,17 @@ import {
   Select,
   MenuItem,
   Chip,
+  useTheme,
+  Stack,
+  Tooltip,
 } from "@mui/material";
 import { useState } from "react";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
+import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -133,7 +138,18 @@ const initialRows = [
   ),
 ];
 
+const roleColors = {
+  Admin: "primary",
+  User: "info",
+  Editor: "secondary",
+};
+const statusColors = {
+  Active: "success",
+  Inactive: "default",
+};
+
 const Tables = () => {
+  const theme = useTheme();
   const [rows, setRows] = useState(initialRows);
   const [searchTerm, setSearchTerm] = useState("");
   const [openDialog, setOpenDialog] = useState(false);
@@ -198,11 +214,12 @@ const Tables = () => {
     } else {
       const newRow = {
         ...formData,
-        id: Math.max(...rows.map((row) => row.id)) + 1,
+        id: rows.length ? Math.max(...rows.map((r) => r.id)) + 1 : 1,
       };
       setRows((prev) => [...prev, newRow]);
     }
-    handleCloseDialog();
+    setOpenDialog(false);
+    setEditingRow(null);
   };
 
   const handleDelete = (id) => {
@@ -210,198 +227,244 @@ const Tables = () => {
   };
 
   const handleExportExcel = () => {
-    const worksheet = XLSX.utils.json_to_sheet(rows);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Users");
-    XLSX.writeFile(workbook, "users_table.xlsx");
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Users");
+    XLSX.writeFile(wb, "users.xlsx");
   };
 
   const handleExportPDF = () => {
     const doc = new jsPDF();
-    doc.text("Users Table", 14, 16);
     autoTable(doc, {
       head: [
-        ["ID", "Name", "Email", "Role", "Department", "Join Date", "Status"],
+        ["ID", "Name", "Email", "Role", "Status", "Department", "Join Date"],
       ],
       body: rows.map((row) => [
         row.id,
         row.name,
         row.email,
         row.role,
+        row.status,
         row.department,
         row.joinDate,
-        row.status,
       ]),
-      startY: 22,
     });
-    doc.save("users_table.pdf");
+    doc.save("users.pdf");
   };
 
   return (
     <Box sx={{ p: 3 }}>
-      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 3 }}>
-        <Typography
-          variant="h4"
-          sx={{ fontWeight: 700, color: "text.primary" }}
+      <Typography
+        variant="h4"
+        gutterBottom
+        sx={{ fontWeight: 700, color: "text.primary" }}
+      >
+        Users Table
+      </Typography>
+      <Paper
+        sx={{
+          p: 3,
+          borderRadius: 3,
+          boxShadow: 4,
+          background: theme.palette.background.paper,
+        }}
+      >
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={2}
+          alignItems={{ sm: "center" }}
+          justifyContent="space-between"
+          sx={{ mb: 3 }}
         >
-          Users Table
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenDialog()}
-        >
-          Add User
-        </Button>
-      </Box>
-
-      <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
-        <Button variant="outlined" onClick={handleExportExcel}>
-          Export to Excel
-        </Button>
-        <Button variant="outlined" onClick={handleExportPDF}>
-          Export to PDF
-        </Button>
-      </Box>
-
-      <Box sx={{ mb: 3, display: "flex", alignItems: "center" }}>
-        <TextField
-          fullWidth
-          variant="outlined"
-          placeholder="Search users..."
-          value={searchTerm}
-          onChange={handleSearch}
-          InputProps={{
-            startAdornment: (
-              <SearchIcon sx={{ mr: 1, color: "text.secondary" }} />
-            ),
-          }}
-        />
-      </Box>
-
-      <TableContainer component={Paper}>
-        <Table sx={{ minWidth: 650 }} aria-label="simple table">
-          <TableHead>
-            <TableRow>
-              <TableCell>ID</TableCell>
-              <TableCell>Name</TableCell>
-              <TableCell>Email</TableCell>
-              <TableCell>Role</TableCell>
-              <TableCell>Department</TableCell>
-              <TableCell>Join Date</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filteredRows.map((row) => (
-              <TableRow
-                key={row.id}
-                sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
-              >
-                <TableCell>{row.id}</TableCell>
-                <TableCell>{row.name}</TableCell>
-                <TableCell>{row.email}</TableCell>
-                <TableCell>{row.role}</TableCell>
-                <TableCell>{row.department}</TableCell>
-                <TableCell>{row.joinDate}</TableCell>
-                <TableCell>
-                  <Chip
-                    label={row.status}
-                    color={row.status === "Active" ? "success" : "error"}
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell>
-                  <IconButton
-                    onClick={() => handleOpenDialog(row)}
-                    color="primary"
-                  >
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton
-                    onClick={() => handleDelete(row.id)}
-                    color="error"
-                  >
-                    <DeleteIcon />
-                  </IconButton>
-                </TableCell>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <TextField
+              size="small"
+              variant="outlined"
+              placeholder="Search users..."
+              value={searchTerm}
+              onChange={handleSearch}
+              InputProps={{
+                startAdornment: <SearchIcon color="action" sx={{ mr: 1 }} />,
+                sx: {
+                  borderRadius: 2,
+                  background: theme.palette.background.default,
+                },
+              }}
+            />
+            <Tooltip title="Add User">
+              <IconButton color="primary" onClick={() => handleOpenDialog()}>
+                <AddIcon />
+              </IconButton>
+            </Tooltip>
+          </Box>
+          <Stack direction="row" spacing={1}>
+            <Tooltip title="Export as Excel">
+              <IconButton color="success" onClick={handleExportExcel}>
+                <FileDownloadIcon />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Export as PDF">
+              <IconButton color="error" onClick={handleExportPDF}>
+                <PictureAsPdfIcon />
+              </IconButton>
+            </Tooltip>
+          </Stack>
+        </Stack>
+        <TableContainer sx={{ borderRadius: 2, boxShadow: 2 }}>
+          <Table>
+            <TableHead>
+              <TableRow sx={{ background: theme.palette.background.default }}>
+                <TableCell>ID</TableCell>
+                <TableCell>Name</TableCell>
+                <TableCell>Email</TableCell>
+                <TableCell>Role</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Department</TableCell>
+                <TableCell>Join Date</TableCell>
+                <TableCell align="right">Actions</TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-
+            </TableHead>
+            <TableBody>
+              {filteredRows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  hover
+                  sx={{
+                    transition: "background 0.2s",
+                    "&:hover": {
+                      background:
+                        `${theme.palette.primary.main}11` || "#f5f5f5",
+                    },
+                  }}
+                >
+                  <TableCell>{row.id}</TableCell>
+                  <TableCell>{row.name}</TableCell>
+                  <TableCell>{row.email}</TableCell>
+                  <TableCell>
+                    <Chip
+                      label={row.role}
+                      color={roleColors[row.role] || "default"}
+                      size="small"
+                      sx={{ fontWeight: 600 }}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      label={row.status}
+                      color={statusColors[row.status] || "default"}
+                      size="small"
+                      sx={{ fontWeight: 600 }}
+                    />
+                  </TableCell>
+                  <TableCell>{row.department}</TableCell>
+                  <TableCell>{row.joinDate}</TableCell>
+                  <TableCell align="right">
+                    <Tooltip title="Edit">
+                      <IconButton
+                        color="primary"
+                        size="small"
+                        onClick={() => handleOpenDialog(row)}
+                      >
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Delete">
+                      <IconButton
+                        color="error"
+                        size="small"
+                        onClick={() => handleDelete(row.id)}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Paper>
       <Dialog
         open={openDialog}
         onClose={handleCloseDialog}
-        maxWidth="sm"
+        maxWidth="xs"
         fullWidth
+        PaperProps={{
+          sx: { borderRadius: 3, boxShadow: 6, p: 2 },
+        }}
       >
-        <DialogTitle>{editingRow ? "Edit User" : "Add New User"}</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>
+          {editingRow ? "Edit User" : "Add User"}
+        </DialogTitle>
         <DialogContent>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 2 }}>
+          <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField
-              name="name"
               label="Name"
+              name="name"
               value={formData.name}
               onChange={handleInputChange}
               fullWidth
+              size="small"
             />
             <TextField
-              name="email"
               label="Email"
+              name="email"
               value={formData.email}
               onChange={handleInputChange}
               fullWidth
+              size="small"
             />
-            <FormControl fullWidth>
+            <FormControl fullWidth size="small">
               <InputLabel>Role</InputLabel>
               <Select
                 name="role"
                 value={formData.role}
-                onChange={handleInputChange}
                 label="Role"
+                onChange={handleInputChange}
               >
                 <MenuItem value="Admin">Admin</MenuItem>
-                <MenuItem value="Editor">Editor</MenuItem>
                 <MenuItem value="User">User</MenuItem>
+                <MenuItem value="Editor">Editor</MenuItem>
               </Select>
             </FormControl>
-            <FormControl fullWidth>
+            <FormControl fullWidth size="small">
               <InputLabel>Status</InputLabel>
               <Select
                 name="status"
                 value={formData.status}
-                onChange={handleInputChange}
                 label="Status"
+                onChange={handleInputChange}
               >
                 <MenuItem value="Active">Active</MenuItem>
                 <MenuItem value="Inactive">Inactive</MenuItem>
               </Select>
             </FormControl>
             <TextField
-              name="department"
               label="Department"
+              name="department"
               value={formData.department}
               onChange={handleInputChange}
               fullWidth
+              size="small"
             />
             <TextField
-              name="joinDate"
               label="Join Date"
+              name="joinDate"
               type="date"
               value={formData.joinDate}
               onChange={handleInputChange}
               fullWidth
+              size="small"
               InputLabelProps={{ shrink: true }}
             />
-          </Box>
+          </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancel</Button>
+          <Button onClick={handleCloseDialog} variant="outlined">
+            Cancel
+          </Button>
           <Button onClick={handleSubmit} variant="contained">
-            {editingRow ? "Update" : "Add"}
+            {editingRow ? "Save" : "Add"}
           </Button>
         </DialogActions>
       </Dialog>

@@ -9,12 +9,21 @@ import {
   DialogActions,
   Button,
   TextField,
+  useTheme,
+  Fab,
+  Tooltip,
 } from "@mui/material";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { useState } from "react";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+
+const columnColors = {
+  todo: "#42a5f5",
+  inProgress: "#ffb300",
+  done: "#66bb6a",
+};
 
 const initialColumns = {
   todo: {
@@ -41,6 +50,7 @@ const initialColumns = {
 };
 
 const Kanban = () => {
+  const theme = useTheme();
   const [columns, setColumns] = useState(initialColumns);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState("add"); // 'add' or 'edit'
@@ -157,30 +167,53 @@ const Kanban = () => {
         Kanban Board
       </Typography>
       <DragDropContext onDragEnd={onDragEnd}>
-        <Box sx={{ display: "flex", gap: 2 }}>
+        <Box
+          sx={{ display: "flex", flexDirection: "row", gap: 4, minHeight: 540 }}
+        >
           {Object.entries(columns).map(([columnId, column]) => (
-            <Box key={columnId} sx={{ flex: 1 }}>
-              <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+            <Paper
+              key={columnId}
+              sx={{
+                flex: 1,
+                p: 2,
+                borderRadius: 3,
+                boxShadow: 4,
+                background: theme.palette.background.paper,
+                borderTop: `6px solid ${columnColors[columnId]}`,
+                display: "flex",
+                flexDirection: "column",
+                minWidth: 280,
+                maxWidth: 340,
+                minHeight: 520,
+              }}
+            >
+              <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
                 <Typography
                   variant="h6"
-                  gutterBottom
-                  sx={{ fontWeight: 700, color: "text.primary", flex: 1 }}
+                  sx={{
+                    fontWeight: 700,
+                    color: columnColors[columnId],
+                    flex: 1,
+                  }}
                 >
                   {column.title}
                 </Typography>
-                <IconButton
-                  size="small"
-                  onClick={() => handleOpenAddDialog(columnId)}
-                >
-                  <AddIcon />
-                </IconButton>
+                <Tooltip title={`Add task to ${column.title}`}>
+                  <IconButton
+                    size="small"
+                    color="primary"
+                    onClick={() => handleOpenAddDialog(columnId)}
+                  >
+                    <AddIcon />
+                  </IconButton>
+                </Tooltip>
               </Box>
               <Droppable droppableId={columnId}>
                 {(provided) => (
-                  <Paper
+                  <Box
                     {...provided.droppableProps}
                     ref={provided.innerRef}
-                    sx={{ p: 2, minHeight: 500 }}
+                    sx={{ flex: 1, minHeight: 420 }}
                   >
                     {column.items.map((item, index) => (
                       <Draggable
@@ -188,7 +221,7 @@ const Kanban = () => {
                         draggableId={item.id}
                         index={index}
                       >
-                        {(provided) => (
+                        {(provided, snapshot) => (
                           <Paper
                             ref={provided.innerRef}
                             {...provided.draggableProps}
@@ -196,40 +229,53 @@ const Kanban = () => {
                             sx={{
                               p: 2,
                               mb: 2,
-                              backgroundColor: "background.paper",
+                              borderRadius: 2,
+                              backgroundColor: snapshot.isDragging
+                                ? `${columnColors[columnId]}22`
+                                : theme.palette.background.default,
+                              boxShadow: snapshot.isDragging ? 6 : 2,
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "space-between",
+                              transition: "background 0.2s, box-shadow 0.2s",
                             }}
                           >
-                            <span style={{ flex: 1 }}>{item.content}</span>
-                            <Box>
-                              <IconButton
-                                size="small"
-                                onClick={() =>
-                                  handleOpenEditDialog(columnId, item)
-                                }
-                              >
-                                <EditIcon fontSize="small" />
-                              </IconButton>
-                              <IconButton
-                                size="small"
-                                onClick={() =>
-                                  handleDeleteTask(columnId, item.id)
-                                }
-                              >
-                                <DeleteIcon fontSize="small" />
-                              </IconButton>
+                            <Typography sx={{ flex: 1, fontWeight: 500 }}>
+                              {item.content}
+                            </Typography>
+                            <Box sx={{ display: "flex", gap: 1, ml: 1 }}>
+                              <Tooltip title="Edit">
+                                <IconButton
+                                  size="small"
+                                  color="primary"
+                                  onClick={() =>
+                                    handleOpenEditDialog(columnId, item)
+                                  }
+                                >
+                                  <EditIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Delete">
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  onClick={() =>
+                                    handleDeleteTask(columnId, item.id)
+                                  }
+                                >
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
                             </Box>
                           </Paper>
                         )}
                       </Draggable>
                     ))}
                     {provided.placeholder}
-                  </Paper>
+                  </Box>
                 )}
               </Droppable>
-            </Box>
+            </Paper>
           ))}
         </Box>
       </DragDropContext>
@@ -238,13 +284,16 @@ const Kanban = () => {
         onClose={handleDialogClose}
         maxWidth="xs"
         fullWidth
+        PaperProps={{
+          sx: { borderRadius: 3, boxShadow: 6, p: 2 },
+        }}
       >
-        <DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>
           {dialogMode === "add" ? "Add Task" : "Edit Task"}
         </DialogTitle>
         <DialogContent>
           <TextField
-            label="Task Content"
+            label="Task"
             value={taskContent}
             onChange={(e) => setTaskContent(e.target.value)}
             fullWidth
@@ -253,24 +302,16 @@ const Kanban = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleDialogClose}>Cancel</Button>
-          {dialogMode === "add" ? (
-            <Button
-              onClick={handleAddTask}
-              variant="contained"
-              disabled={!taskContent.trim()}
-            >
-              Add
-            </Button>
-          ) : (
-            <Button
-              onClick={handleEditTask}
-              variant="contained"
-              disabled={!taskContent.trim()}
-            >
-              Save
-            </Button>
-          )}
+          <Button onClick={handleDialogClose} variant="outlined">
+            Cancel
+          </Button>
+          <Button
+            onClick={dialogMode === "add" ? handleAddTask : handleEditTask}
+            variant="contained"
+            disabled={!taskContent.trim()}
+          >
+            {dialogMode === "add" ? "Add" : "Save"}
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

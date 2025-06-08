@@ -1,130 +1,223 @@
-import { Grid, Paper, Typography, Box } from "@mui/material";
+import React from "react";
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-} from "recharts";
+  Grid,
+  Paper,
+  Typography,
+  Box,
+  Card,
+  CardContent,
+  CardHeader,
+  IconButton,
+  LinearProgress,
+  useTheme,
+} from "@mui/material";
+import {
+  MoreVert as MoreVertIcon,
+  TrendingUp as TrendingUpIcon,
+  TrendingDown as TrendingDownIcon,
+  People as PeopleIcon,
+  AttachMoney as MoneyIcon,
+  ShoppingCart as CartIcon,
+  Assessment as AssessmentIcon,
+} from "@mui/icons-material";
+import { styled } from "@mui/material/styles";
 
-const data = [
-  { name: "Jan", value: 400 },
-  { name: "Feb", value: 300 },
-  { name: "Mar", value: 600 },
-  { name: "Apr", value: 800 },
-  { name: "May", value: 500 },
-  { name: "Jun", value: 700 },
-  { name: "Jul", value: 900 },
-  { name: "Aug", value: 750 },
-  { name: "Sep", value: 850 },
-  { name: "Oct", value: 950 },
-  { name: "Nov", value: 1100 },
-  { name: "Dec", value: 1200 },
-];
+const StyledCard = styled(Card)(({ theme }) => ({
+  height: "100%",
+  display: "flex",
+  flexDirection: "column",
+  transition: "transform 0.2s ease-in-out",
+  "&:hover": {
+    transform: "translateY(-4px)",
+  },
+}));
 
-const StatCard = ({ title, value, icon }) => (
-  <Paper
-    sx={{
-      p: 4,
-      display: "flex",
-      flexDirection: "column",
-      height: 180,
-      minWidth: 0,
-      alignItems: "flex-start",
-      justifyContent: "center",
-      boxShadow: 4,
-      borderRadius: 3,
-    }}
-  >
-    <Box
-      sx={{ display: "flex", justifyContent: "space-between", width: "100%" }}
-    >
-      <Typography color="text.secondary" gutterBottom>
-        {title}
-      </Typography>
-      {icon}
-    </Box>
-    <Typography component="p" variant="h3">
-      {value}
-    </Typography>
-  </Paper>
-);
+const StatCard = ({ title, value, icon, trend, color }) => {
+  const theme = useTheme();
+  const isPositive = trend > 0;
+
+  return (
+    <StyledCard>
+      <CardContent>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            mb: 2,
+          }}
+        >
+          <Box
+            sx={{
+              backgroundColor: `${color}15`,
+              borderRadius: 2,
+              p: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            {React.cloneElement(icon, {
+              sx: { color: color, fontSize: 28 },
+            })}
+          </Box>
+          <IconButton size="small">
+            <MoreVertIcon />
+          </IconButton>
+        </Box>
+        <Typography
+          variant="h4"
+          component="div"
+          sx={{ mb: 1, fontWeight: 600 }}
+        >
+          {value}
+        </Typography>
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ display: "flex", alignItems: "center", gap: 1 }}
+        >
+          {isPositive ? (
+            <TrendingUpIcon sx={{ color: theme.palette.success.main }} />
+          ) : (
+            <TrendingDownIcon sx={{ color: theme.palette.error.main }} />
+          )}
+          {Math.abs(trend)}% from last month
+        </Typography>
+        <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 1 }}>
+          {title}
+        </Typography>
+      </CardContent>
+    </StyledCard>
+  );
+};
+
+const ProgressCard = ({ title, value, total, color }) => {
+  const progress = (value / total) * 100;
+
+  return (
+    <StyledCard>
+      <CardContent>
+        <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 500 }}>
+          {title}
+        </Typography>
+        <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+          <Typography
+            variant="h4"
+            component="div"
+            sx={{ mr: 1, fontWeight: 600 }}
+          >
+            {value}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            / {total}
+          </Typography>
+        </Box>
+        <LinearProgress
+          variant="determinate"
+          value={progress}
+          sx={{
+            height: 8,
+            borderRadius: 4,
+            backgroundColor: `${color}15`,
+            "& .MuiLinearProgress-bar": {
+              backgroundColor: color,
+            },
+          }}
+        />
+      </CardContent>
+    </StyledCard>
+  );
+};
 
 const Dashboard = () => {
-  return (
-    <Box sx={{ flexGrow: 1, p: 5 }}>
-      {/* First row: Stat Cards */}
-      <Grid container spacing={6} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard title="Total Users" value="1,234" />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard title="Revenue" value="$5,678" />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard title="Orders" value="890" />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard title="Growth" value="23%" />
-        </Grid>
-      </Grid>
+  const theme = useTheme();
 
-      {/* Second row: Charts side by side */}
-      <Grid container spacing={6}>
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 4, height: 520, boxShadow: 4, borderRadius: 3 }}>
-            <Typography
-              variant="h4"
-              gutterBottom
-              sx={{ fontWeight: 700, color: "text.primary" }}
-            >
-              Analytics Charts
+  const stats = [
+    {
+      title: "Total Users",
+      value: "2,420",
+      icon: <PeopleIcon />,
+      trend: 12.5,
+      color: theme.palette.primary.main,
+    },
+    {
+      title: "Total Revenue",
+      value: "$12,420",
+      icon: <MoneyIcon />,
+      trend: 8.2,
+      color: theme.palette.success.main,
+    },
+    {
+      title: "Total Orders",
+      value: "1,520",
+      icon: <CartIcon />,
+      trend: -2.4,
+      color: theme.palette.warning.main,
+    },
+    {
+      title: "Total Sales",
+      value: "$8,420",
+      icon: <AssessmentIcon />,
+      trend: 5.4,
+      color: theme.palette.info.main,
+    },
+  ];
+
+  const progressData = [
+    {
+      title: "Monthly Sales Target",
+      value: 75,
+      total: 100,
+      color: theme.palette.primary.main,
+    },
+    {
+      title: "Customer Satisfaction",
+      value: 85,
+      total: 100,
+      color: theme.palette.success.main,
+    },
+    {
+      title: "Project Completion",
+      value: 60,
+      total: 100,
+      color: theme.palette.warning.main,
+    },
+  ];
+
+  return (
+    <Box sx={{ p: 3 }}>
+      <Typography variant="h4" sx={{ mb: 4, fontWeight: 600 }}>
+        Dashboard Overview
+      </Typography>
+
+      <Grid container spacing={3}>
+        {stats.map((stat, index) => (
+          <Grid item xs={12} sm={6} md={3} key={index}>
+            <StatCard {...stat} />
+          </Grid>
+        ))}
+
+        <Grid item xs={12}>
+          <Paper
+            sx={{
+              p: 3,
+              borderRadius: 2,
+              backgroundColor: theme.palette.background.paper,
+            }}
+          >
+            <Typography variant="h6" sx={{ mb: 3, fontWeight: 500 }}>
+              Recent Activity
             </Typography>
-            <Typography
-              variant="h5"
-              gutterBottom
-              sx={{ fontWeight: 700, color: "text.primary" }}
-            >
-              Monthly Revenue
-            </Typography>
-            <ResponsiveContainer width="100%" height={420}>
-              <BarChart data={data}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="value" fill="#8884d8" />
-              </BarChart>
-            </ResponsiveContainer>
+            {/* Add your activity content here */}
           </Paper>
         </Grid>
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 4, height: 520, boxShadow: 4, borderRadius: 3 }}>
-            <Typography
-              variant="h5"
-              gutterBottom
-              sx={{ fontWeight: 700, color: "text.primary" }}
-            >
-              Growth Trend
-            </Typography>
-            <ResponsiveContainer width="100%" height={420}>
-              <LineChart data={data}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Line type="monotone" dataKey="value" stroke="#82ca9d" />
-              </LineChart>
-            </ResponsiveContainer>
-          </Paper>
-        </Grid>
+
+        {progressData.map((data, index) => (
+          <Grid item xs={12} md={4} key={index}>
+            <ProgressCard {...data} />
+          </Grid>
+        ))}
       </Grid>
     </Box>
   );
